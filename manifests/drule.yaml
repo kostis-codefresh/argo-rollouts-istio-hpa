@@ -1,0 +1,21 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    app: demo-ag
+    cell: prod
+  name: demo-ag-prod
+spec:
+  host: demo-ag-prod
+  subsets:
+    - labels:
+        pcln.role: canary
+        track: primary
+      name: primary-canary
+    - labels:
+        pcln.role: stable
+        track: primary
+      name: primary-stable
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
