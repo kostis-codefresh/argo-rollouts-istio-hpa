@@ -3,17 +3,18 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: demo-app
+  namespace: argocd
   annotations:
     argocd.argoproj.io/manifest-generate-paths: .
 spec:
-  # project: pipeline
+  project: default
   source:
     repoURL: "https://github.com/kostis-codefresh/argo-rollouts-istio-hpa"
-    targetRevision: main
+    targetRevision: HEAD
     path: manifests
   destination:
     server: https://kubernetes.default.svc
-    namespace: pipeline-prod-test
+    namespace: default
   syncPolicy:
     retry:
       limit: 1
