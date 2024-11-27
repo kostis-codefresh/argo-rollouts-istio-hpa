@@ -7,8 +7,7 @@
 
 ```
 kubectl create namespace argo-rollouts
-kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-
-rollouts/releases/download/v1.7.1/install.yaml
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/download/v1.7.1/install.yaml
 ```
 
 ## Install Istio 
@@ -30,7 +29,32 @@ kubectl create namespace istio-ingress
 helm install istio-ingress istio/gateway -n istio-ingress --version 1.19.0 --wait
 ```
 
-## Deploy
+## Test Istio
+
+```
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/refs/tags/1.19.0/samples/httpbin/httpbin.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/refs/tags/1.19.0/samples/httpbin/httpbin-gateway.yaml
+```
+
+Find ingress host and port
+
+```
+export INGRESS_NAME=istio-ingress
+export INGRESS_NS=istio-ingress
+export INGRESS_HOST=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+export TCP_INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="tcp")].port}')
+```
+
+Test application access
+
+```
+curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/status/200"
+curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/headers"
+```
+
+## Deploy rollout
 
 ```
 cd manifests
@@ -41,4 +65,9 @@ Verify with
 
 ```
 kubectl argo rollouts get rollout demo-ag-prod-primary
+
 ```
+
+
+
+
