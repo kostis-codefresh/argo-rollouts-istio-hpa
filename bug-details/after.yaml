@@ -1,0 +1,958 @@
+apiVersion: v1
+items:
+- apiVersion: networking.istio.io/v1beta1
+  kind: VirtualService
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.istio.io/v1beta1","kind":"VirtualService","metadata":{"annotations":{},"labels":{"app":"demo-ag","cell":"prod"},"name":"demo-ag-prod-http-vs","namespace":"default"},"spec":{"gateways":["demo-gateway"],"hosts":["*"],"http":[{"name":"primary","route":[{"destination":{"host":"demo-ag-prod","port":{"number":80},"subset":"primary-canary"},"weight":0},{"destination":{"host":"demo-ag-prod","port":{"number":80},"subset":"primary-stable"},"weight":100}]}]}}
+    creationTimestamp: "2024-12-12T08:19:43Z"
+    generation: 7
+    labels:
+      app: demo-ag
+      cell: prod
+    name: demo-ag-prod-http-vs
+    namespace: default
+    resourceVersion: "15676230"
+    uid: 9484926a-af5f-48a3-a2f1-7caef7647a57
+  spec:
+    gateways:
+    - demo-gateway
+    hosts:
+    - '*'
+    http:
+    - name: primary
+      route:
+      - destination:
+          host: demo-ag-prod
+          port:
+            number: 80
+          subset: primary-canary
+        weight: 0
+      - destination:
+          host: demo-ag-prod
+          port:
+            number: 80
+          subset: primary-stable
+        weight: 100
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      istio.io/rev: default
+      kubectl.kubernetes.io/default-container: demo-ag
+      kubectl.kubernetes.io/default-logs-container: demo-ag
+      prometheus.io/path: /stats/prometheus
+      prometheus.io/port: "15020"
+      prometheus.io/scrape: "true"
+      sidecar.istio.io/excludeInboundPorts: "9443"
+      sidecar.istio.io/excludeOutboundPorts: "9443"
+      sidecar.istio.io/status: '{"initContainers":["istio-init"],"containers":["istio-proxy"],"volumes":["workload-socket","credential-socket","workload-certs","istio-envoy","istio-data","istio-podinfo","istio-token","istiod-ca-cert"],"imagePullSecrets":null,"revision":"default"}'
+    creationTimestamp: "2024-12-12T08:54:38Z"
+    generateName: demo-ag-prod-primary-74b46669d6-
+    labels:
+      app: demo-ag
+      application: demo-ag
+      bu: tech
+      cell: prod
+      deployMode: normal
+      pcln.role: stable
+      product: pipeline
+      rollouts-pod-template-hash: 74b46669d6
+      security.istio.io/tlsMode: istio
+      service.istio.io/canonical-name: demo-ag
+      service.istio.io/canonical-revision: latest
+      team: pipeline
+      track: primary
+    name: demo-ag-prod-primary-74b46669d6-l6tjm
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: demo-ag-prod-primary-74b46669d6
+      uid: a6702377-27e5-4d25-8fbd-f182fb7dd02f
+    resourceVersion: "15676214"
+    uid: 998cc31e-c301-460e-b3e4-056414eb64a7
+  spec:
+    containers:
+    - image: kostiscodefresh/summer-of-k8s-app:v3
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /app-health/demo-ag/livez
+          port: 15020
+          scheme: HTTP
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      name: demo-ag
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /app-health/demo-ag/readyz
+          port: 15020
+          scheme: HTTP
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 512Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-j4ndc
+        readOnly: true
+    - args:
+      - proxy
+      - sidecar
+      - --domain
+      - $(POD_NAMESPACE).svc.cluster.local
+      - --proxyLogLevel=warning
+      - --proxyComponentLogLevel=misc:error
+      - --log_output_level=default:info
+      env:
+      - name: JWT_POLICY
+        value: third-party-jwt
+      - name: PILOT_CERT_PROVIDER
+        value: istiod
+      - name: CA_ADDR
+        value: istiod.istio-system.svc:15012
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: INSTANCE_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.podIP
+      - name: SERVICE_ACCOUNT
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.serviceAccountName
+      - name: HOST_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.hostIP
+      - name: ISTIO_CPU_LIMIT
+        valueFrom:
+          resourceFieldRef:
+            divisor: "0"
+            resource: limits.cpu
+      - name: PROXY_CONFIG
+        value: |
+          {}
+      - name: ISTIO_META_POD_PORTS
+        value: |-
+          [
+              {"name":"http","containerPort":8080,"protocol":"TCP"}
+          ]
+      - name: ISTIO_META_APP_CONTAINERS
+        value: demo-ag
+      - name: GOMEMLIMIT
+        valueFrom:
+          resourceFieldRef:
+            divisor: "0"
+            resource: limits.memory
+      - name: GOMAXPROCS
+        valueFrom:
+          resourceFieldRef:
+            divisor: "0"
+            resource: limits.cpu
+      - name: ISTIO_META_CLUSTER_ID
+        value: Kubernetes
+      - name: ISTIO_META_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      - name: ISTIO_META_INTERCEPTION_MODE
+        value: REDIRECT
+      - name: ISTIO_META_WORKLOAD_NAME
+        value: demo-ag-prod-primary-74b46669d6
+      - name: ISTIO_META_OWNER
+        value: kubernetes://apis/apps/v1/namespaces/default/replicasets/demo-ag-prod-primary-74b46669d6
+      - name: ISTIO_META_MESH_ID
+        value: cluster.local
+      - name: TRUST_DOMAIN
+        value: cluster.local
+      - name: ISTIO_KUBE_APP_PROBERS
+        value: '{"/app-health/demo-ag/livez":{"httpGet":{"path":"/","port":8080,"scheme":"HTTP"},"timeoutSeconds":1},"/app-health/demo-ag/readyz":{"httpGet":{"path":"/","port":8080,"scheme":"HTTP"},"timeoutSeconds":1}}'
+      image: docker.io/istio/proxyv2:1.19.0
+      imagePullPolicy: IfNotPresent
+      name: istio-proxy
+      ports:
+      - containerPort: 15090
+        name: http-envoy-prom
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 30
+        httpGet:
+          path: /healthz/ready
+          port: 15021
+          scheme: HTTP
+        initialDelaySeconds: 1
+        periodSeconds: 2
+        successThreshold: 1
+        timeoutSeconds: 3
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsGroup: 1337
+        runAsNonRoot: true
+        runAsUser: 1337
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/workload-spiffe-uds
+        name: workload-socket
+      - mountPath: /var/run/secrets/credential-uds
+        name: credential-socket
+      - mountPath: /var/run/secrets/workload-spiffe-credentials
+        name: workload-certs
+      - mountPath: /var/run/secrets/istio
+        name: istiod-ca-cert
+      - mountPath: /var/lib/istio/data
+        name: istio-data
+      - mountPath: /etc/istio/proxy
+        name: istio-envoy
+      - mountPath: /var/run/secrets/tokens
+        name: istio-token
+      - mountPath: /etc/istio/pod
+        name: istio-podinfo
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-j4ndc
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - args:
+      - istio-iptables
+      - -p
+      - "15001"
+      - -z
+      - "15006"
+      - -u
+      - "1337"
+      - -m
+      - REDIRECT
+      - -i
+      - '*'
+      - -x
+      - ""
+      - -b
+      - '*'
+      - -d
+      - 15090,15021,15020
+      - --log_output_level=default:info
+      image: docker.io/istio/proxyv2:1.19.0
+      imagePullPolicy: IfNotPresent
+      name: istio-init
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - NET_ADMIN
+          - NET_RAW
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: false
+        runAsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-j4ndc
+        readOnly: true
+    nodeName: gke-noble-vortex-443009--default-pool-d35a2afd-47dz
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - emptyDir: {}
+      name: workload-socket
+    - emptyDir: {}
+      name: credential-socket
+    - emptyDir: {}
+      name: workload-certs
+    - emptyDir:
+        medium: Memory
+      name: istio-envoy
+    - emptyDir: {}
+      name: istio-data
+    - downwardAPI:
+        defaultMode: 420
+        items:
+        - fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.labels
+          path: labels
+        - fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.annotations
+          path: annotations
+      name: istio-podinfo
+    - name: istio-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            audience: istio-ca
+            expirationSeconds: 43200
+            path: istio-token
+    - configMap:
+        defaultMode: 420
+        name: istio-ca-root-cert
+      name: istiod-ca-cert
+    - name: kube-api-access-j4ndc
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:39Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:39Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:41Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:41Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:38Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://c60419a0b55fc866b962d28c09f46141ae4e657a16577062962fb3693b822226
+      image: docker.io/kostiscodefresh/summer-of-k8s-app:v3
+      imageID: docker.io/kostiscodefresh/summer-of-k8s-app@sha256:5089511beab187f12a4e7d456f261e1997417ea989a5e895fd43c4386e0e3402
+      lastState: {}
+      name: demo-ag
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2024-12-12T08:54:40Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-j4ndc
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - containerID: containerd://9d5b7dcfa340b996adbaf4f3e5a84d8a27fafe7acf4c03c56c351e3766a08bc0
+      image: docker.io/istio/proxyv2:1.19.0
+      imageID: docker.io/istio/proxyv2@sha256:35ad0149ac3d02911541198607cd876abbecc981083e9daa4748aeab23674456
+      lastState: {}
+      name: istio-proxy
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2024-12-12T08:54:40Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/workload-spiffe-uds
+        name: workload-socket
+      - mountPath: /var/run/secrets/credential-uds
+        name: credential-socket
+      - mountPath: /var/run/secrets/workload-spiffe-credentials
+        name: workload-certs
+      - mountPath: /var/run/secrets/istio
+        name: istiod-ca-cert
+      - mountPath: /var/lib/istio/data
+        name: istio-data
+      - mountPath: /etc/istio/proxy
+        name: istio-envoy
+      - mountPath: /var/run/secrets/tokens
+        name: istio-token
+      - mountPath: /etc/istio/pod
+        name: istio-podinfo
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-j4ndc
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.168.0.3
+    hostIPs:
+    - ip: 10.168.0.3
+    initContainerStatuses:
+    - containerID: containerd://ffd5e859658abf7d4f0e2ca453877120710d0592990c5775c29f05a75314f330
+      image: docker.io/istio/proxyv2:1.19.0
+      imageID: docker.io/istio/proxyv2@sha256:35ad0149ac3d02911541198607cd876abbecc981083e9daa4748aeab23674456
+      lastState: {}
+      name: istio-init
+      ready: true
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://ffd5e859658abf7d4f0e2ca453877120710d0592990c5775c29f05a75314f330
+          exitCode: 0
+          finishedAt: "2024-12-12T08:54:39Z"
+          reason: Completed
+          startedAt: "2024-12-12T08:54:39Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-j4ndc
+        readOnly: true
+        recursiveReadOnly: Disabled
+    phase: Running
+    podIP: 10.24.0.22
+    podIPs:
+    - ip: 10.24.0.22
+    qosClass: Burstable
+    startTime: "2024-12-12T08:54:38Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      istio.io/rev: default
+      kubectl.kubernetes.io/default-container: demo-ag
+      kubectl.kubernetes.io/default-logs-container: demo-ag
+      prometheus.io/path: /stats/prometheus
+      prometheus.io/port: "15020"
+      prometheus.io/scrape: "true"
+      sidecar.istio.io/excludeInboundPorts: "9443"
+      sidecar.istio.io/excludeOutboundPorts: "9443"
+      sidecar.istio.io/status: '{"initContainers":["istio-init"],"containers":["istio-proxy"],"volumes":["workload-socket","credential-socket","workload-certs","istio-envoy","istio-data","istio-podinfo","istio-token","istiod-ca-cert"],"imagePullSecrets":null,"revision":"default"}'
+    creationTimestamp: "2024-12-12T08:54:06Z"
+    generateName: demo-ag-prod-primary-74b46669d6-
+    labels:
+      app: demo-ag
+      application: demo-ag
+      bu: tech
+      cell: prod
+      deployMode: normal
+      pcln.role: stable
+      product: pipeline
+      rollouts-pod-template-hash: 74b46669d6
+      security.istio.io/tlsMode: istio
+      service.istio.io/canonical-name: demo-ag
+      service.istio.io/canonical-revision: latest
+      team: pipeline
+      track: primary
+    name: demo-ag-prod-primary-74b46669d6-qp5zs
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: demo-ag-prod-primary-74b46669d6
+      uid: a6702377-27e5-4d25-8fbd-f182fb7dd02f
+    resourceVersion: "15676217"
+    uid: f6642436-7760-4ab3-a8cb-8da21b60f551
+  spec:
+    containers:
+    - image: kostiscodefresh/summer-of-k8s-app:v3
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /app-health/demo-ag/livez
+          port: 15020
+          scheme: HTTP
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      name: demo-ag
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /app-health/demo-ag/readyz
+          port: 15020
+          scheme: HTTP
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 512Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-cxrkr
+        readOnly: true
+    - args:
+      - proxy
+      - sidecar
+      - --domain
+      - $(POD_NAMESPACE).svc.cluster.local
+      - --proxyLogLevel=warning
+      - --proxyComponentLogLevel=misc:error
+      - --log_output_level=default:info
+      env:
+      - name: JWT_POLICY
+        value: third-party-jwt
+      - name: PILOT_CERT_PROVIDER
+        value: istiod
+      - name: CA_ADDR
+        value: istiod.istio-system.svc:15012
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: INSTANCE_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.podIP
+      - name: SERVICE_ACCOUNT
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.serviceAccountName
+      - name: HOST_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.hostIP
+      - name: ISTIO_CPU_LIMIT
+        valueFrom:
+          resourceFieldRef:
+            divisor: "0"
+            resource: limits.cpu
+      - name: PROXY_CONFIG
+        value: |
+          {}
+      - name: ISTIO_META_POD_PORTS
+        value: |-
+          [
+              {"name":"http","containerPort":8080,"protocol":"TCP"}
+          ]
+      - name: ISTIO_META_APP_CONTAINERS
+        value: demo-ag
+      - name: GOMEMLIMIT
+        valueFrom:
+          resourceFieldRef:
+            divisor: "0"
+            resource: limits.memory
+      - name: GOMAXPROCS
+        valueFrom:
+          resourceFieldRef:
+            divisor: "0"
+            resource: limits.cpu
+      - name: ISTIO_META_CLUSTER_ID
+        value: Kubernetes
+      - name: ISTIO_META_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      - name: ISTIO_META_INTERCEPTION_MODE
+        value: REDIRECT
+      - name: ISTIO_META_WORKLOAD_NAME
+        value: demo-ag-prod-primary-74b46669d6
+      - name: ISTIO_META_OWNER
+        value: kubernetes://apis/apps/v1/namespaces/default/replicasets/demo-ag-prod-primary-74b46669d6
+      - name: ISTIO_META_MESH_ID
+        value: cluster.local
+      - name: TRUST_DOMAIN
+        value: cluster.local
+      - name: ISTIO_KUBE_APP_PROBERS
+        value: '{"/app-health/demo-ag/livez":{"httpGet":{"path":"/","port":8080,"scheme":"HTTP"},"timeoutSeconds":1},"/app-health/demo-ag/readyz":{"httpGet":{"path":"/","port":8080,"scheme":"HTTP"},"timeoutSeconds":1}}'
+      image: docker.io/istio/proxyv2:1.19.0
+      imagePullPolicy: IfNotPresent
+      name: istio-proxy
+      ports:
+      - containerPort: 15090
+        name: http-envoy-prom
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 30
+        httpGet:
+          path: /healthz/ready
+          port: 15021
+          scheme: HTTP
+        initialDelaySeconds: 1
+        periodSeconds: 2
+        successThreshold: 1
+        timeoutSeconds: 3
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsGroup: 1337
+        runAsNonRoot: true
+        runAsUser: 1337
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/workload-spiffe-uds
+        name: workload-socket
+      - mountPath: /var/run/secrets/credential-uds
+        name: credential-socket
+      - mountPath: /var/run/secrets/workload-spiffe-credentials
+        name: workload-certs
+      - mountPath: /var/run/secrets/istio
+        name: istiod-ca-cert
+      - mountPath: /var/lib/istio/data
+        name: istio-data
+      - mountPath: /etc/istio/proxy
+        name: istio-envoy
+      - mountPath: /var/run/secrets/tokens
+        name: istio-token
+      - mountPath: /etc/istio/pod
+        name: istio-podinfo
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-cxrkr
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - args:
+      - istio-iptables
+      - -p
+      - "15001"
+      - -z
+      - "15006"
+      - -u
+      - "1337"
+      - -m
+      - REDIRECT
+      - -i
+      - '*'
+      - -x
+      - ""
+      - -b
+      - '*'
+      - -d
+      - 15090,15021,15020
+      - --log_output_level=default:info
+      image: docker.io/istio/proxyv2:1.19.0
+      imagePullPolicy: IfNotPresent
+      name: istio-init
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - NET_ADMIN
+          - NET_RAW
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: false
+        runAsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-cxrkr
+        readOnly: true
+    nodeName: gke-noble-vortex-443009--default-pool-d35a2afd-69lc
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - emptyDir: {}
+      name: workload-socket
+    - emptyDir: {}
+      name: credential-socket
+    - emptyDir: {}
+      name: workload-certs
+    - emptyDir:
+        medium: Memory
+      name: istio-envoy
+    - emptyDir: {}
+      name: istio-data
+    - downwardAPI:
+        defaultMode: 420
+        items:
+        - fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.labels
+          path: labels
+        - fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.annotations
+          path: annotations
+      name: istio-podinfo
+    - name: istio-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            audience: istio-ca
+            expirationSeconds: 43200
+            path: istio-token
+    - configMap:
+        defaultMode: 420
+        name: istio-ca-root-cert
+      name: istiod-ca-cert
+    - name: kube-api-access-cxrkr
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:07Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:07Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:09Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:09Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2024-12-12T08:54:06Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://ee2bcd3b08fb04152a56e0f3f6de09a156d26da3d98cf65bb10d4d1aab6a5b07
+      image: docker.io/kostiscodefresh/summer-of-k8s-app:v3
+      imageID: docker.io/kostiscodefresh/summer-of-k8s-app@sha256:5089511beab187f12a4e7d456f261e1997417ea989a5e895fd43c4386e0e3402
+      lastState: {}
+      name: demo-ag
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2024-12-12T08:54:08Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-cxrkr
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - containerID: containerd://944b9c22875c81b709311089b484fafe8c9a3499518a8c52493529864f4903e1
+      image: docker.io/istio/proxyv2:1.19.0
+      imageID: docker.io/istio/proxyv2@sha256:35ad0149ac3d02911541198607cd876abbecc981083e9daa4748aeab23674456
+      lastState: {}
+      name: istio-proxy
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2024-12-12T08:54:08Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/workload-spiffe-uds
+        name: workload-socket
+      - mountPath: /var/run/secrets/credential-uds
+        name: credential-socket
+      - mountPath: /var/run/secrets/workload-spiffe-credentials
+        name: workload-certs
+      - mountPath: /var/run/secrets/istio
+        name: istiod-ca-cert
+      - mountPath: /var/lib/istio/data
+        name: istio-data
+      - mountPath: /etc/istio/proxy
+        name: istio-envoy
+      - mountPath: /var/run/secrets/tokens
+        name: istio-token
+      - mountPath: /etc/istio/pod
+        name: istio-podinfo
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-cxrkr
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.168.0.6
+    hostIPs:
+    - ip: 10.168.0.6
+    initContainerStatuses:
+    - containerID: containerd://529ede4350bc2645c1f848c0085174d74d1746ffee0f51f58de32dac550a3b98
+      image: docker.io/istio/proxyv2:1.19.0
+      imageID: docker.io/istio/proxyv2@sha256:35ad0149ac3d02911541198607cd876abbecc981083e9daa4748aeab23674456
+      lastState: {}
+      name: istio-init
+      ready: true
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://529ede4350bc2645c1f848c0085174d74d1746ffee0f51f58de32dac550a3b98
+          exitCode: 0
+          finishedAt: "2024-12-12T08:54:07Z"
+          reason: Completed
+          startedAt: "2024-12-12T08:54:07Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-cxrkr
+        readOnly: true
+        recursiveReadOnly: Disabled
+    phase: Running
+    podIP: 10.24.3.19
+    podIPs:
+    - ip: 10.24.3.19
+    qosClass: Burstable
+    startTime: "2024-12-12T08:54:07Z"
+- apiVersion: networking.istio.io/v1beta1
+  kind: DestinationRule
+  metadata:
+    annotations:
+      argo-rollouts.argoproj.io/managed-by-rollouts: demo-ag-prod-primary
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.istio.io/v1beta1","kind":"DestinationRule","metadata":{"annotations":{},"labels":{"app":"demo-ag","cell":"prod"},"name":"demo-ag-prod","namespace":"default"},"spec":{"host":"demo-ag-prod","subsets":[{"labels":{"pcln.role":"canary","track":"primary"},"name":"primary-canary"},{"labels":{"pcln.role":"stable","track":"primary"},"name":"primary-stable"}],"trafficPolicy":{"loadBalancer":{"simple":"LEAST_CONN"}}}}
+    creationTimestamp: "2024-12-12T08:19:40Z"
+    generation: 9
+    labels:
+      app: demo-ag
+      cell: prod
+    name: demo-ag-prod
+    namespace: default
+    resourceVersion: "15676228"
+    uid: 923a4359-7149-4b4d-a1e7-034648c74349
+  spec:
+    host: demo-ag-prod
+    subsets:
+    - labels:
+        pcln.role: canary
+        rollouts-pod-template-hash: 74b46669d6
+        track: primary
+      name: primary-canary
+    - labels:
+        pcln.role: stable
+        rollouts-pod-template-hash: 74b46669d6
+        track: primary
+      name: primary-stable
+    trafficPolicy:
+      loadBalancer:
+        simple: LEAST_CONN
+kind: List
+metadata:
+  resourceVersion: ""
