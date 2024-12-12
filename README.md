@@ -98,6 +98,20 @@ Promote with
 kubectl argo rollouts promote demo-ag-prod-primary
 ```
 
+Promote a second time and you will see 503 errors in the application
+
+
+## Workaround 
+
+The problem doesn't seem to exist if you use [host level splitting](https://argo-rollouts.readthedocs.io/en/stable/features/traffic-management/istio/#host-level-traffic-splitting)
+The same example as found in the [workaround](workaround) folder works just file
+
+## Proper solution
+
+The downtime cause is the combinations of using destination rule labels
+that are also part of [ephemeral metadata](https://argo-rollouts.readthedocs.io/en/stable/features/ephemeral-metadata/). 
+
+The folder [solution](solution) is the same example and it works without downtime
 
 
 
