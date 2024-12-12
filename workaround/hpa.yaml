@@ -1,0 +1,24 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: demo-ag
+    cell: prod
+    track: primary
+  name: demo-ag-prod-primary-hpa
+spec:
+  maxReplicas: 2
+  metrics:
+    - resource:
+        name: cpu
+        target:
+          averageUtilization: 80
+          type: Utilization
+      type: Resource
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: demo-ag-prod-primary

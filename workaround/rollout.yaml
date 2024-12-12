@@ -1,0 +1,101 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app: demo-ag
+    application: demo-ag
+    bu: tech
+    cell: prod
+    dashlessCell: prod
+    environment: prod
+    product: pipeline
+    region: guse4
+    team: pipeline
+    track: primary
+  name: demo-ag-prod-primary
+spec:
+  analysis:
+    successfulRunHistoryLimit: 1
+    unsuccessfulRunHistoryLimit: 1
+  progressDeadlineSeconds: 50400
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: demo-ag
+      cell: prod
+      track: primary
+  strategy:
+    canary:
+      # dynamicStableScale: true
+      canaryMetadata:
+        labels:
+          pcln.role: canary
+      stableMetadata:
+        labels:
+          pcln.role: stable
+      steps:
+        - setCanaryScale:
+            matchTrafficWeight: true
+        - setWeight: 50
+        - pause: {}
+        # - setCanaryScale:
+        #     weight: 50          
+        - setWeight: 100
+        - pause: {}
+      canaryService: demo-ag-prod-canary  # required
+      stableService: demo-ag-prod-stable  # required        
+      trafficRouting:
+        istio:
+          # destinationRule:
+          #   canarySubsetName: primary-canary
+          #   name: demo-ag-prod
+          #   stableSubsetName: primary-stable
+          virtualService:
+            name: demo-ag-prod-http-vs
+            routes:
+              - primary
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/excludeInboundPorts: "9443"
+        sidecar.istio.io/excludeOutboundPorts: "9443"
+      labels:
+        app: demo-ag
+        application: demo-ag
+        bu: tech
+        cell: prod
+        deployMode: normal
+        product: pipeline
+        team: pipeline
+        track: primary
+    spec:
+      containers:
+        - name: demo-ag
+          # image: kostiscodefresh/summer-of-k8s-app:v1
+          image: kostiscodefresh/summer-of-k8s-app:v1
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 8080
+            timeoutSeconds: 1
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 8080
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 512Mi
+
+---
