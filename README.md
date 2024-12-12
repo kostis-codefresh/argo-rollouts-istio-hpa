@@ -3,6 +3,8 @@
 * Argo Rollouts version  v1.7.1-CR-24605
 * Istio 1.19
 
+This repository replicates Argo Rollout issues [2507](https://github.com/argoproj/argo-rollouts/issues/2507) and [3681](https://github.com/argoproj/argo-rollouts/issues/3681)
+
 
 ## Get a Kubernetes cluster
 
